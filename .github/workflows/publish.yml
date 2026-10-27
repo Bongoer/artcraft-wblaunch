@@ -1,0 +1,145 @@
+name: Publish real Craft WebAssembly suite
+
+on:
+  workflow_dispatch:
+    inputs:
+      update_sources:
+        description: "Attempt source WASM builds if upstream main is newer than its official web release"
+        type: boolean
+        default: false
+  schedule:
+    - cron: '13 */6 * * *'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-wikipod-suite
+  cancel-in-progress: false
+
+jobs:
+  apps:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        app: [photocraft, lightcraft, filmcraft, designcraft, vectorcraft, pdfcraft, effectcraft, wordcraft, deckcraft, gridcraft, cadcraft, soundcraft, figcraft]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve upstream app version
+        id: refs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APP: ${{ matrix.app }}
+        run: |
+          echo "sha=$(gh api repos/storytold/$APP/commits/main --jq .sha)" >> "$GITHUB_OUTPUT"
+          echo "tag=$(gh api repos/storytold/$APP/releases/latest --jq .tag_name || echo no-release)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/craft_cached/${{ matrix.app }}
+          key: wasm-${{ matrix.app }}-${{ steps.refs.outputs.sha }}-${{ steps.refs.outputs.tag }}-source${{ github.event_name == 'schedule' || inputs.update_sources == true }}
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: trunk
+      - name: Download latest official WASM or build latest Rust source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          UPDATE_FROM_SOURCE: ${{ github.event_name == 'schedule' || inputs.update_sources == true }}
+          APP: ${{ matrix.app }}
+        run: bash scripts/fetch_app.sh "$APP"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: original-wasm-${{ matrix.app }}
+          path: _apps/
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+  launcher:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: trunk
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: upstream-launcher
+      - name: Clone and modify the ORIGINAL Rust launcher
+        run: |
+          git clone --depth 1 https://github.com/storytold/craft-launcher.git upstream-launcher
+          python3 scripts/patch_launcher.py upstream-launcher
+          cd upstream-launcher
+          cargo fmt --all
+      - name: Build genuine modified Rust/WASM launcher
+        run: |
+          cd upstream-launcher/apps/artcraft-launcher-web
+          trunk build --release --cargo-profile wasm-release
+      - name: Prepare launcher output
+        run: |
+          mkdir -p _launcher
+          cp -a upstream-launcher/dist/web/. _launcher/
+          test -s _launcher/index.html
+          find _launcher -maxdepth 1 -name '*.wasm' -print -quit | grep -q .
+          cp assets/wikipod.svg _launcher/wikipod.svg
+          cp upstream-launcher/LICENSE-MIT upstream-launcher/LICENSE-APACHE upstream-launcher/NOTICE upstream-launcher/ATTRIBUTION.md _launcher/
+          python3 - <<'PY'
+          from pathlib import Path
+          html=Path('_launcher/index.html')
+          s=html.read_text()
+          s=s.replace('</head>', '<link rel="icon" type="image/svg+xml" href="./wikipod.svg"></head>', 1)
+          html.write_text(s)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: modified-rust-launcher
+          path: _launcher/
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [apps, launcher]
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: modified-rust-launcher
+          path: _site/
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: original-wasm-*
+          path: _site/apps/
+          merge-multiple: true
+      - name: Verify all 13 real app builds, no placeholders
+        run: |
+          set -e
+          for app in photocraft lightcraft filmcraft designcraft vectorcraft pdfcraft effectcraft wordcraft deckcraft gridcraft cadcraft soundcraft figcraft; do
+            test -s "_site/apps/$app/index.html" || { echo "ERROR: $app missing"; exit 1; }
+            find "_site/apps/$app" -type f \( -name '*.wasm' -o -name '*.part-aa' \) -print -quit | grep -q . || exit 1
+            echo "OK: $app is a genuine WebAssembly build"
+          done
+          printf '%s\n' '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=../"><a href="../">Open Wikipod Launcher</a>' > _site/launcher.html
+          touch _site/.nojekyll
+          cp assets/apps-index.html _site/apps/index.html
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site/
+      - uses: actions/deploy-pages@v4
+        id: deployment
