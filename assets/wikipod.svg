@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 62 80" role="img" aria-label="Wikipod logo">
+  <g fill="#f1f2f4">
+    <path d="M0 0H62V26H26Z"/>
+    <path d="M0 26H26L62 62H26Z"/>
+    <path d="M0 26H26V80L0 54Z"/>
+  </g>
+</svg>
