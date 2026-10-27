@@ -96,12 +96,13 @@ jobs:
           test -s _launcher/index.html
           find _launcher -maxdepth 1 -name '*.wasm' -print -quit | grep -q .
           cp assets/wikipod.svg _launcher/wikipod.svg
+          cp assets/aricraft-icon.svg _launcher/aricraft-icon.svg
           cp upstream-launcher/LICENSE-MIT upstream-launcher/LICENSE-APACHE upstream-launcher/NOTICE upstream-launcher/ATTRIBUTION.md _launcher/
           python3 - <<'PY'
           from pathlib import Path
           html=Path('_launcher/index.html')
           s=html.read_text()
-          s=s.replace('</head>', '<link rel="icon" type="image/svg+xml" href="./wikipod.svg"></head>', 1)
+          s=s.replace('</head>', '<link rel="icon" type="image/svg+xml" href="./aricraft-icon.svg"></head>', 1)
           html.write_text(s)
           PY
       - uses: actions/upload-artifact@v4
