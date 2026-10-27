@@ -76,15 +76,15 @@ jobs:
       - uses: taiki-e/install-action@v2
         with:
           tool: trunk
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: upstream-launcher
       - name: Clone and modify the ORIGINAL Rust launcher
         run: |
           git clone --depth 1 https://github.com/storytold/craft-launcher.git upstream-launcher
           python3 scripts/patch_launcher.py upstream-launcher
           cd upstream-launcher
           cargo fmt --all
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: upstream-launcher
       - name: Build genuine modified Rust/WASM launcher
         run: |
           cd upstream-launcher/apps/artcraft-launcher-web
