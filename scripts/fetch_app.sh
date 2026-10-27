@@ -29,10 +29,20 @@ if [[ -n "$tag" && -n "$release_date" ]]; then
     new_source=true
   fi
 fi
-if ! compgen -G "$work/release/*.zip" > /dev/null && { [[ -z "$webasset" ]] || { [[ "$new_source" == true && "${UPDATE_FROM_SOURCE:-false}" == true ]]; }; }; then
+# DeckCraft can embed permitted open-source UI fonts from craft-fonts when built from
+# source. The published WASM may omit those optional faces, leaving egui's Ubuntu fallback.
+font_build=false
+if [[ "$app" == deckcraft && "${EMBED_DECKCRAFT_FONTS:-false}" == true ]]; then
+  font_build=true
+fi
+if ! compgen -G "$work/release/*.zip" > /dev/null && { [[ "$font_build" == true ]] || [[ -z "$webasset" ]] || { [[ "$new_source" == true && "${UPDATE_FROM_SOURCE:-false}" == true ]]; }; }; then
   echo "${app}: checking source build (newer source: ${new_source}; released browser ZIP: ${webasset:-none})"
   if git clone -q --depth 1 "https://github.com/storytold/${app}.git" "$work/source" \
-     && (cd "$work/source" && CI=1 bash packaging/web/package.sh); then
+     && (if [[ "$font_build" == true ]]; then
+           git clone -q --depth 1 https://github.com/storytold/craft-fonts.git "$work/craft-fonts"
+           export CRAFT_FONTS_DIR="$work/craft-fonts" CRAFT_FONTS_REQUIRED=1
+         fi
+         cd "$work/source" && CI=1 bash packaging/web/package.sh); then
     built="$(find "$work/source/dist" -maxdepth 1 -type f -name "${app}-web-*.zip" | head -n 1 || true)"
     if [[ -n "$built" ]]; then
       cp "$built" "$work/release/"
@@ -65,3 +75,9 @@ cp -a "$site/." "$output/"
 test -s "$output/index.html"
 find "$output" -type f \( -name '*.wasm' -o -name '*.part-aa' \) -print -quit | grep -q . || { echo "ERROR: ${app} browser package has no WebAssembly" >&2; exit 1; }
 echo "Ready: /apps/${app}/"
+
+# Copy official suite icon and present a consistent startup screen while native WASM loads.
+curl -fLsS --retry 3 \
+  "https://raw.githubusercontent.com/storytold/craft-launcher/main/assets/app-icons/${app}.png" \
+  -o "$output/wikipod-app-icon.png"
+python3 "$GITHUB_WORKSPACE/scripts/inject_loader.py" "$output" "$app"
