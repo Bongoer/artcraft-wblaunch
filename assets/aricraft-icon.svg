@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 126 122" role="img" aria-label="aricraft symbol">
+<title>aricraft symbol</title><g>
+    <path d="M53 19H41C28 19 21 26 21 39V51" fill="none" stroke="#2FD0CF" stroke-width="12" stroke-linecap="round"/>
+    <path d="M73 19H85C98 19 105 26 105 39V51" fill="none" stroke="#6D8CFF" stroke-width="12" stroke-linecap="round"/>
+    <path d="M105 71V83C105 96 98 103 85 103H73" fill="none" stroke="#6D8CFF" stroke-width="12" stroke-linecap="round"/>
+    <path d="M53 103H41C28 103 21 96 21 83V71" fill="none" stroke="#2FD0CF" stroke-width="12" stroke-linecap="round"/>
+    <path d="M63 39L85 61L63 83L41 61Z" fill="#F7FAFF"/>
+  </g></svg>
