@@ -28,7 +28,7 @@ replace_once('''            // The ArtCraft wordmark exactly as supplied, in its
             let (cell, _) = ui.allocate_exact_size(vec2(logo.x + 40.0, h), Sense::hover());
             egui::Image::new(crate::icons::artcraft_logo(t.dark)).alt_text(tl!("ArtCraft")).paint_at(ui, Rect::from_center_size(cell.center(), logo));''', '''            // Explicit upstream attribution, not a protected ArtCraft brand asset.
             ui.add_space(13.0);
-            ui.label(RichText::new("Based on ArtCraft Launcher").size(13.0).color(t.muted));
+            ui.label(RichText::new("Based on ArtCraft Launcher").size(14.0).family(theme::medium()).color(t.ink_strong));
             ui.add_space(13.0);''')
 
 replace_once('''                // The controls reserve their actual widths before the secondary text gets space.
@@ -45,7 +45,7 @@ replace_once('''                // The controls reserve their actual widths befo
                         ui.add_space(12.0);
                         wikipod_mark(ui, t.ink_strong);
                         ui.add_space(7.0);
-                        widgets::hud(ui, "wikipod", t.muted);
+                        ui.label(RichText::new("wikipod").size(16.0).family(theme::semibold()).color(t.ink_strong));
                     }
                 });''')
 
