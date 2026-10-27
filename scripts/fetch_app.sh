@@ -29,18 +29,19 @@ if [[ -n "$tag" && -n "$release_date" ]]; then
     new_source=true
   fi
 fi
-# DeckCraft can embed permitted open-source UI fonts from craft-fonts when built from
-# source. The published WASM may omit those optional faces, leaving egui's Ubuntu fallback.
+# Only the three Office-style editors require our modified Rust/WASM font builds.
 font_build=false
-if [[ "$app" == deckcraft && "${EMBED_DECKCRAFT_FONTS:-false}" == true ]]; then
-  font_build=true
-fi
+case "$app" in
+  deckcraft|wordcraft|gridcraft)
+    if [[ "${EMBED_OFFICE_FONTS:-false}" == true ]]; then font_build=true; fi ;;
+esac
 if ! compgen -G "$work/release/*.zip" > /dev/null && { [[ "$font_build" == true ]] || [[ -z "$webasset" ]] || { [[ "$new_source" == true && "${UPDATE_FROM_SOURCE:-false}" == true ]]; }; }; then
   echo "${app}: checking source build (newer source: ${new_source}; released browser ZIP: ${webasset:-none})"
   if git clone -q --depth 1 "https://github.com/storytold/${app}.git" "$work/source" \
      && (if [[ "$font_build" == true ]]; then
            git clone -q --depth 1 https://github.com/storytold/craft-fonts.git "$work/craft-fonts"
            export CRAFT_FONTS_DIR="$work/craft-fonts" CRAFT_FONTS_REQUIRED=1
+           python3 "$GITHUB_WORKSPACE/scripts/patch_font_apps.py" "$app" "$work/source"
          fi
          cd "$work/source" && CI=1 bash packaging/web/package.sh); then
     built="$(find "$work/source/dist" -maxdepth 1 -type f -name "${app}-web-*.zip" | head -n 1 || true)"
@@ -49,7 +50,11 @@ if ! compgen -G "$work/release/*.zip" > /dev/null && { [[ "$font_build" == true 
       echo "${app}: using current Rust source WebAssembly build"
     fi
   else
-    echo "WARNING: ${app} could not build from current Rust source; falling back to published WebAssembly release" >&2
+    if [[ "$font_build" == true ]]; then
+      echo "ERROR: ${app} font-customized Rust/WASM build failed. Keeping the last deployed Pages build." >&2
+      exit 1
+    fi
+    echo "WARNING: ${app} source build failed; using the official browser release" >&2
   fi
 fi
 
