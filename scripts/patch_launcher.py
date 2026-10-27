@@ -8,6 +8,12 @@ from pathlib import Path
 import sys
 
 root = Path(sys.argv[1])
+# Stage the reviewed SVG artwork for Rust's compile-time include_image! macro.
+logo_source = Path(__file__).resolve().parents[1] / "assets"
+logo_output = root / "assets" / "aricraft"
+logo_output.mkdir(parents=True, exist_ok=True)
+for name, destination in (("aricraft-logo-dark.svg", "logo-dark.svg"), ("aricraft-logo-light.svg", "logo-light.svg")):
+    (logo_output / destination).write_bytes((logo_source / name).read_bytes())
 file = root / 'crates/ui-egui/src/views.rs'
 src = file.read_text(encoding='utf-8')
 
@@ -26,10 +32,25 @@ def replace_once(old: str, new: str) -> None:
 replace_once('''            // The ArtCraft wordmark exactly as supplied, in its own cell.
             let logo = vec2(14.0 * crate::icons::ARTCRAFT_LOGO_ASPECT, 14.0);
             let (cell, _) = ui.allocate_exact_size(vec2(logo.x + 40.0, h), Sense::hover());
-            egui::Image::new(crate::icons::artcraft_logo(t.dark)).alt_text(tl!("ArtCraft")).paint_at(ui, Rect::from_center_size(cell.center(), logo));''', '''            // Explicit upstream attribution, not a protected ArtCraft brand asset.
-            ui.add_space(13.0);
-            ui.label(RichText::new("Based on ArtCraft Launcher").size(14.0).family(theme::medium()).color(t.ink_strong));
-            ui.add_space(13.0);''')
+            egui::Image::new(crate::icons::artcraft_logo(t.dark)).alt_text(tl!("ArtCraft")).paint_at(ui, Rect::from_center_size(cell.center(), logo));''', '''            // aricraft original vector wordmark; attribution remains visible below it.
+            let logo = vec2(123.0, 28.85);
+            let (cell, _) = ui.allocate_exact_size(vec2(logo.x + 24.0, h), Sense::hover());
+            let source = if t.dark {
+                egui::include_image!("../../../assets/aricraft/logo-dark.svg")
+            } else {
+                egui::include_image!("../../../assets/aricraft/logo-light.svg")
+            };
+            egui::Image::new(source).alt_text("aricraft").paint_at(
+                ui,
+                Rect::from_min_size(egui::pos2(cell.left() + 12.0, cell.top() + 1.0), logo),
+            );
+            ui.painter().text(
+                egui::pos2(cell.left() + 12.0, cell.bottom() - 4.0),
+                egui::Align2::LEFT_BOTTOM,
+                "Based on ArtCraft Launcher",
+                FontId::proportional(9.0),
+                t.muted,
+            );''')
 
 replace_once('''                // The controls reserve their actual widths before the secondary text gets space.
                 ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
@@ -160,6 +181,6 @@ needle = '  <link data-trunk rel="icon" href="../../assets/app-icon/hicolor/64x6
 if h.count(needle) != 1:
     raise SystemExit('Rust patch refused: unexpected launcher icon tag')
 h = h.replace(needle, '', 1)
-h = h.replace('<title>ArtCraft Launcher</title>', '<title>Wikipod Web Launcher</title>', 1)
+h = h.replace('<title>ArtCraft Launcher</title>', '<title>aricraft launcher | Wikipod</title>', 1)
 html.write_text(h, encoding='utf-8')
 print('Patched Rust launcher: Wikipod in secondary header, Open App with Heroicons icon, correct browser availability.')
