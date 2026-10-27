@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#151619">
+<title>Web apps | ArtCraft</title>
+<style>
+  *{box-sizing:border-box} body{margin:0;color:#ececed;background:#151619;font:15px/1.5 Inter,system-ui,sans-serif}
+  main{max-width:1040px;margin:auto;padding:32px 20px 72px} a{color:inherit}
+  .back{text-decoration:none;color:#b1b3ba;font-size:13px} h1{font-size:clamp(30px,6vw,56px);line-height:1.1;letter-spacing:-.045em;margin:35px 0 10px}
+  p.lead{color:#a8abb2;margin:0 0 35px;max-width:600px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+  .card{display:flex;flex-direction:column;min-height:168px;padding:23px;border:1px solid #3a3b40;border-radius:10px;background:#202126;text-decoration:none;transition:border-color .16s,background .16s}
+  .card:hover{border-color:#a9abb2;background:#25262c}h2{font-size:19px;letter-spacing:-.03em;margin:0 0 8px}
+  .status{font-size:12px;color:#a2a4ad;margin:auto 0 0;padding-top:18px}
+  .ready{color:#a4e1b5} .disabled{color:#6f727d}
+</style>
+</head>
+<body><main>
+<a class="back" href="../">← ArtCraft Launcher</a>
+<h1>Apps in your browser</h1>
+<p class="lead">Real Craft App Suite browser builds. PhotoCraft is available now. Other app pages are reserved for their official WebAssembly builds.</p>
+<div id="grid" class="grid"></div>
+</main>
+<script>
+const names=['PhotoCraft','LightCraft','FilmCraft','DesignCraft','VectorCraft','PdfCraft','EffectCraft','WordCraft','DeckCraft','GridCraft','CADCraft','SoundCraft','FigCraft'];
+const grid=document.getElementById('grid');
+for(const name of names){
+  const id=name.toLowerCase();
+  const ready=id==='photocraft';
+  const el=document.createElement('a');el.className='card';el.href='./'+id+'/';
+  const title=document.createElement('h2');title.textContent=name;el.append(title);
+  const status=document.createElement('span');status.className='status '+(ready?'ready':'disabled');
+  status.textContent=ready?'● Open the real WebAssembly editor →':'Browser build not hosted yet →';
+  el.append(status);grid.append(el);
+}
+</script>
+</body></html>
