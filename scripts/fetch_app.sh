@@ -44,10 +44,13 @@ if ! compgen -G "$work/release/*.zip" > /dev/null && { [[ "$font_build" == true 
            python3 "$GITHUB_WORKSPACE/scripts/patch_font_apps.py" "$app" "$work/source"
          fi
          cd "$work/source" && CI=1 bash packaging/web/package.sh); then
-    built="$(find "$work/source/dist" -maxdepth 1 -type f -name "${app}-web-*.zip" | head -n 1 || true)"
+    built="$(find "$work/source/dist" -type f -name "${app}-web-*.zip" -print -quit 2>/dev/null || true)"
     if [[ -n "$built" ]]; then
       cp "$built" "$work/release/"
       echo "${app}: using current Rust source WebAssembly build"
+    elif [[ "$font_build" == true ]]; then
+      echo "ERROR: ${app} source build succeeded but generated web ZIP was not found." >&2
+      exit 1
     fi
   else
     if [[ "$font_build" == true ]]; then
