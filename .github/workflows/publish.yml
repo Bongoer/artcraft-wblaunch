@@ -41,7 +41,7 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: ${{ runner.temp }}/craft_cached/${{ matrix.app }}
-          key: wasm-${{ matrix.app }}-${{ steps.refs.outputs.sha }}-${{ steps.refs.outputs.tag }}-fonts-office-v4
+          key: wasm-${{ matrix.app }}-${{ steps.refs.outputs.sha }}-${{ steps.refs.outputs.tag }}-${{ (matrix.app == 'deckcraft' || matrix.app == 'gridcraft') && 'fonts-office-v5' || 'fonts-office-v4' }}
       - uses: dtolnay/rust-toolchain@stable
         if: github.event_name == 'schedule' || inputs.update_sources == true || matrix.app == 'deckcraft' || matrix.app == 'wordcraft' || matrix.app == 'gridcraft'
         with:
