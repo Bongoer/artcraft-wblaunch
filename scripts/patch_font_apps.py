@@ -16,6 +16,11 @@ def replace_exact(path: str, needle: str, replacement: str):
 
 
 if app == 'deckcraft':
+    # Web releases ordinarily omit Inter SemiBold even though the UI asks for it.
+    # The missing weight makes toolbar and ribbon text look thinner than WordCraft.
+    replace_exact('crates/fonts/build.rs',
+        '("Inter", "Regular" | "Bold" | "Variable")',
+        '("Inter", "Regular" | "SemiBold" | "Bold" | "Variable")')
     replace_exact('crates/ui-egui/src/theme.rs',
         '    add_fallback_faces(&mut defs, extra);',
         '''    // Preserve the original Inter UI style on wasm; Ubuntu was only a last resort.
@@ -44,6 +49,7 @@ elif app == 'gridcraft':
     // Small OFL Latin faces from the shared manifest: the UI must not render in Ubuntu.
     ("Inter", "Regular"),
     ("Inter", "Bold"),
+    ("Inter", "SemiBold"),
     ("Carlito", "Regular"),
     ("Carlito", "Bold"),
     ("Carlito", "Italic"),
@@ -58,7 +64,7 @@ elif app == 'gridcraft':
             .map_err(|e| format!("Latin font manifest: {e}"))?;
         let rows = craft_fonts_policy::parse_manifest(&text)?;
         if required {
-            for (family, style) in [("Inter", "Regular"), ("Inter", "Bold"),
+            for (family, style) in [("Inter", "Regular"), ("Inter", "Bold"), ("Inter", "SemiBold"),
                 ("Carlito", "Regular"), ("Carlito", "Bold"), ("Carlito", "Italic"), ("Carlito", "Bold Italic")] {
                 if !rows.iter().any(|r| r.family == family && r.style == style) {
                     return Err(format!("Missing {family} {style} in Latin font manifest"));
@@ -82,7 +88,7 @@ elif app == 'gridcraft':
     if cfg!(target_arch = "wasm32") {
         for (role, family, style) in [
             (UI, "Inter", "Regular"),
-            (UI_BOLD, "Inter", "Bold"),
+            (UI_BOLD, "Inter", "SemiBold"),
             (CELL, "Carlito", "Regular"),
             (CELL_BOLD, "Carlito", "Bold"),
             (CELL_ITALIC, "Carlito", "Italic"),
